@@ -1,6 +1,0 @@
-{
-  "name": "Student Database Management System",
-  "description": "A comprehensive Student Database Management System with roles for Teachers and Students.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
