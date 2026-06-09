@@ -1,8 +1,26 @@
-node_modules/
-build/
-dist/
-coverage/
+# Python virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Python cache
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Local database configuration (untracked)
+**/db_config.json
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated files
 .DS_Store
-*.log
-.env*
-!.env.example
+Thumbs.db

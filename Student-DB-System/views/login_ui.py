@@ -1,5 +1,5 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+import customtkinter as ctk
+from tkinter import messagebox
 from utils.validation import validate_login_fields
 from database.db_manager import DBManager
 
@@ -11,7 +11,6 @@ class LoginUI:
         
         self.root.title("System Access Control")
         self.root.geometry("450x500")
-        self.root.configure(bg="#F3F4F6")
         self.root.resizable(False, False)
         
         # Center the window
@@ -25,36 +24,26 @@ class LoginUI:
 
     def create_widgets(self):
         # Card style container
-        card = tk.Frame(self.root, bg="#FFFFFF", bd=0, highlightthickness=1, highlightbackground="#E5E7EB")
-        card.place(relx=0.5, rely=0.5, anchor="center", width=380, height=420)
+        card = ctk.CTkFrame(self.root, width=380, height=420, corner_radius=15)
+        card.place(relx=0.5, rely=0.5, anchor="center")
         
         # Header Label
-        header = tk.Label(card, text="SYSTEM ACCESS CONTROL", font=("Arial", 16, "bold"), fg="#2A3E5C", bg="#FFFFFF")
-        header.pack(pady=(40, 30))
-        
-        # Input Fields Container
-        form_frame = tk.Frame(card, bg="#FFFFFF")
-        form_frame.pack(fill="x", padx=40)
+        header = ctk.CTkLabel(card, text="SYSTEM ACCESS CONTROL", font=("Arial", 16, "bold"), text_color="#2A3E5C")
+        header.pack(pady=(45, 30))
         
         # Username Entry
-        u_label = tk.Label(form_frame, text="Username", font=("Arial", 11), fg="#4B5563", bg="#FFFFFF", anchor="w")
-        u_label.pack(fill="x", pady=(10, 5))
-        
-        self.username_entry = tk.Entry(form_frame, font=("Arial", 12), bd=1, relief="solid", highlightthickness=0)
-        self.username_entry.pack(fill="x", ipady=6, pady=(0, 15))
+        self.username_entry = ctk.CTkEntry(card, width=300, height=40, placeholder_text="Username", font=("Arial", 14))
+        self.username_entry.pack(pady=(10, 15))
         
         # Password Entry
-        p_label = tk.Label(form_frame, text="Password", font=("Arial", 11), fg="#4B5563", bg="#FFFFFF", anchor="w")
-        p_label.pack(fill="x", pady=(10, 5))
-        
-        self.password_entry = tk.Entry(form_frame, font=("Arial", 12), show="*", bd=1, relief="solid", highlightthickness=0)
-        self.password_entry.pack(fill="x", ipady=6, pady=(0, 30))
+        self.password_entry = ctk.CTkEntry(card, width=300, height=40, placeholder_text="Password", show="*", font=("Arial", 14))
+        self.password_entry.pack(pady=(0, 30))
         
         # Login Button
-        login_btn = tk.Button(card, text="LOGIN", font=("Arial", 12, "bold"), bg="#2A3E5C", fg="#FFFFFF",
-                              activebackground="#1E2A3C", activeforeground="#FFFFFF", bd=0, cursor="hand2",
-                              command=self.handle_login)
-        login_btn.pack(fill="x", padx=40, ipady=10)
+        login_btn = ctk.CTkButton(card, text="LOGIN", font=("Arial", 14, "bold"), width=300, height=40,
+                                  corner_radius=8, fg_color="#2A3E5C", hover_color="#1E2A3C",
+                                  command=self.handle_login)
+        login_btn.pack()
 
     def handle_login(self):
         username = self.username_entry.get().strip()
@@ -65,7 +54,6 @@ class LoginUI:
             messagebox.showerror("Validation Error", err_msg)
             return
             
-        # Try custom MySQL login
         try:
             query = "SELECT role FROM users WHERE username = %s AND password = %s"
             result = self.db.execute_query(query, (username, password))
@@ -74,16 +62,13 @@ class LoginUI:
                 role = result[0]["role"]
                 self.on_success(username, role)
             else:
-                # Local fallbacks for development/offline mode
                 if username == "admin" and password == "admin":
                     self.on_success("admin", "teacher")
                 elif username.startswith("std_") and password:
-                    # Let student log in directly in offline demonstration
                     self.on_success(username, "student")
                 else:
                     messagebox.showerror("Access Denied", "Invalid username or password credentials.")
         except Exception as e:
-            # Fallback when database connections are completely missing
             if username == "admin" and password == "admin":
                 self.on_success("admin", "teacher")
             else:

@@ -1,12 +1,33 @@
-import tkinter as tk
+import customtkinter as ctk
 from views.login_ui import LoginUI
 from views.dashboard_ui import DashboardUI
+from views.db_setup_ui import DBSetupUI
+from database.db_manager import DBManager
+
+ctk.set_appearance_mode("light")
+ctk.set_default_color_theme("blue")
 
 class StudentDBApp:
     def __init__(self):
-        self.root = tk.Tk()
+        self.root = ctk.CTk()
         self.username = None
         self.role = None
+        self.check_database()
+
+    def check_database(self):
+        db = DBManager()
+        success, err = db.check_and_setup()
+        if not success:
+            self.show_database_setup()
+        else:
+            self.show_login_screen()
+
+    def show_database_setup(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        self.setup_manager = DBSetupUI(self.root, self.on_setup_completed)
+
+    def on_setup_completed(self):
         self.show_login_screen()
 
     def show_login_screen(self):
