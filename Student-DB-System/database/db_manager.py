@@ -1,5 +1,5 @@
-import mysql.connector
-from mysql.connector import Error
+import pymysql
+from pymysql import Error
 import threading
 
 class DBManager:
@@ -18,10 +18,11 @@ class DBManager:
             return
         db_config = self.load_config()
         self.config = {
-            "host": host or db_config.get("host", "localhost"),
-            "user": user or db_config.get("user", "root"),
-            "password": password if password is not None else db_config.get("password", ""),
-            "database": database or db_config.get("database", "student_db")
+            "host": host or db_config.get("host", "sql12.freesqldatabase.com"),
+            "user": user or db_config.get("user", "sql12829933"),
+            "password": password if password is not None else db_config.get("password", "k65kYT55Nz"),
+            "database": database or db_config.get("database", "sql12829933"),
+            "port": int(db_config.get("port", 3306))
         }
         self.db_lock = threading.Lock()
         self._initialized = True
@@ -37,10 +38,11 @@ class DBManager:
         import json
         path = cls.get_config_path()
         defaults = {
-            "host": "localhost",
-            "user": "root",
-            "password": "",
-            "database": "student_db"
+            "host": "sql12.freesqldatabase.com",
+            "user": "sql12829933",
+            "password": "k65kYT55Nz",
+            "database": "sql12829933",
+            "port": 3306
         }
         if os.path.exists(path):
             try:
@@ -75,12 +77,13 @@ class DBManager:
             "host": host,
             "user": user,
             "password": password,
-            "database": database
+            "database": database,
+            "port": 3306
         }
         self.save_config(self.config)
 
     def get_connection(self):
-        return mysql.connector.connect(**self.config)
+        return pymysql.connect(**self.config)
 
     def check_and_setup(self):
         """
@@ -89,7 +92,6 @@ class DBManager:
         Returns (False, err) if connection fails.
         """
         try:
-            # First, check if database connection is possible with config
             conn = None
             try:
                 conn = self.get_connection()
@@ -116,9 +118,9 @@ class DBManager:
                     # Initialize database schema
                     self.initialize_database()
                 return True, None
-            except mysql.connector.Error as e:
+            except pymysql.Error as e:
                 # If database does not exist, let's try to create it
-                if e.errno == 1049: # ER_BAD_DB_ERROR
+                if e.args[0] == 1049: # ER_BAD_DB_ERROR
                     self.initialize_database()
                     return True, None
                 else:
@@ -136,31 +138,48 @@ class DBManager:
         with open(schema_path, "r", encoding="utf-8") as f:
             schema_sql = f.read()
 
-        config_no_db = self.config.copy()
-        if "database" in config_no_db:
-            del config_no_db["database"]
+        # Connect to database directly
+        conn_has_db = True
+        try:
+            conn = self.get_connection()
+        except pymysql.Error as e:
+            # If database does not exist (e.g. locally), connect without database
+            if e.args[0] == 1049:
+                config_no_db = self.config.copy()
+                if "database" in config_no_db:
+                    del config_no_db["database"]
+                conn = pymysql.connect(**config_no_db)
+                conn_has_db = False
+            else:
+                raise e
 
-        conn = mysql.connector.connect(**config_no_db)
         cursor = conn.cursor()
         
         # We need to run each statement in schema.sql.
         statements = schema_sql.split(";")
         for statement in statements:
             statement = statement.strip()
-            if statement:
-                cursor.execute(statement)
+            if not statement:
+                continue
+            # If we already connected to a specific database, skip CREATE DATABASE/USE statements
+            if conn_has_db:
+                stmt_upper = statement.upper()
+                if stmt_upper.startswith("CREATE DATABASE") or stmt_upper.startswith("USE "):
+                    continue
+            cursor.execute(statement)
         conn.commit()
         cursor.close()
         conn.close()
 
     def execute_query(self, query, params=None):
+        import pymysql.cursors
         with self.db_lock:
             conn = None
             cursor = None
             result = None
             try:
                 conn = self.get_connection()
-                cursor = conn.cursor(dictionary=True)
+                cursor = conn.cursor(pymysql.cursors.DictCursor)
                 cursor.execute(query, params or ())
                 result = cursor.fetchall()
                 conn.commit()
@@ -204,7 +223,7 @@ class DBManager:
             success = False
             try:
                 conn = self.get_connection()
-                conn.autocommit = False
+                conn.autocommit(False)
                 cursor = conn.cursor()
                 for query, params in operations:
                     cursor.execute(query, params or ())
