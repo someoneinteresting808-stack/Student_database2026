@@ -83,7 +83,20 @@ class DBManager:
         self.save_config(self.config)
 
     def get_connection(self):
-        return pymysql.connect(**self.config)
+        # We reuse a single connection to avoid opening a new TCP handshake
+        # on every single query (which causes massive lag over the internet).
+        config_with_timeout = self.config.copy()
+        config_with_timeout["connect_timeout"] = 3
+        
+        if hasattr(self, "_conn") and self._conn and self._conn.open:
+            try:
+                self._conn.ping(reconnect=True)
+                return self._conn
+            except Exception:
+                pass
+        
+        self._conn = pymysql.connect(**config_with_timeout)
+        return self._conn
 
     def check_and_setup(self):
         """
@@ -113,7 +126,6 @@ class DBManager:
                         all_exist = False
                 
                 cursor.close()
-                conn.close()
                 if not all_exist:
                     # Initialize database schema
                     self.initialize_database()
@@ -148,6 +160,7 @@ class DBManager:
                 config_no_db = self.config.copy()
                 if "database" in config_no_db:
                     del config_no_db["database"]
+                config_no_db["connect_timeout"] = 3
                 conn = pymysql.connect(**config_no_db)
                 conn_has_db = False
             else:
@@ -169,7 +182,9 @@ class DBManager:
             cursor.execute(statement)
         conn.commit()
         cursor.close()
-        conn.close()
+        # If we connected to config_no_db, we should close it as it was a temp connection
+        if not conn_has_db:
+            conn.close()
 
     def execute_query(self, query, params=None):
         import pymysql.cursors
@@ -190,8 +205,6 @@ class DBManager:
             finally:
                 if cursor:
                     cursor.close()
-                if conn:
-                    conn.close()
             return result
 
     def execute_non_query(self, query, params=None):
@@ -212,8 +225,6 @@ class DBManager:
             finally:
                 if cursor:
                     cursor.close()
-                if conn:
-                    conn.close()
             return success
 
     def execute_transaction(self, operations):
@@ -236,6 +247,4 @@ class DBManager:
             finally:
                 if cursor:
                     cursor.close()
-                if conn:
-                    conn.close()
             return success

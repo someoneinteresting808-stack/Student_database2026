@@ -139,7 +139,13 @@ class DashboardUI:
         logout_btn = ctk.CTkButton(self.sidebar, text="🚪  Log Out", font=("Arial", 13, "bold"), text_color="#EF4444",
                                   fg_color="transparent", hover_color="#1E2A3C", anchor="w", corner_radius=8, height=45,
                                   command=self.handle_logout)
-        logout_btn.pack(side="bottom", fill="x", pady=40, padx=10)
+        logout_btn.pack(side="bottom", fill="x", pady=(0, 40), padx=10)
+
+        # Maximize right above logout
+        self.btn_fullscreen = ctk.CTkButton(self.sidebar, text="🖥️  Maximize Window", font=("Arial", 13), text_color="#FFFFFF",
+                                           fg_color="transparent", hover_color="#1E2A3C", anchor="w", corner_radius=8, height=45,
+                                           command=self.toggle_fullscreen)
+        self.btn_fullscreen.pack(side="bottom", fill="x", pady=(0, 10), padx=10)
 
     def create_student_nav(self):
         ctk.CTkLabel(self.sidebar, text=f"Welcome, {self.username}", font=("Arial", 11, "italic"), text_color="#E5E7EB").pack(pady=(0, 30))
@@ -148,10 +154,17 @@ class DashboardUI:
                                      fg_color="#1E2A3C", hover_color="#1A2536", anchor="w", corner_radius=8, height=45)
         self.btn_self.pack(fill="x", pady=4, padx=10)
 
+        # Logout at absolute bottom
         logout_btn = ctk.CTkButton(self.sidebar, text="🚪  Log Out", font=("Arial", 13, "bold"), text_color="#EF4444",
                                   fg_color="transparent", hover_color="#1E2A3C", anchor="w", corner_radius=8, height=45,
                                   command=self.handle_logout)
-        logout_btn.pack(side="bottom", fill="x", pady=40, padx=10)
+        logout_btn.pack(side="bottom", fill="x", pady=(0, 40), padx=10)
+
+        # Maximize right above logout
+        self.btn_fullscreen_stud = ctk.CTkButton(self.sidebar, text="🖥️  Maximize Window", font=("Arial", 13), text_color="#FFFFFF",
+                                                fg_color="transparent", hover_color="#1E2A3C", anchor="w", corner_radius=8, height=45,
+                                                command=self.toggle_fullscreen)
+        self.btn_fullscreen_stud.pack(side="bottom", fill="x", pady=(0, 10), padx=10)
 
     def clear_workspace(self):
         for widget in self.workspace.winfo_children():
@@ -166,6 +179,38 @@ class DashboardUI:
             self.btn_reports.configure(fg_color="#2A3E5C")
             self.btn_accounts.configure(fg_color="#2A3E5C")
             active_btn.configure(fg_color="#1E2A3C")
+
+    def toggle_fullscreen(self):
+        try:
+            current_state = self.root.state()
+            if current_state == "zoomed":
+                self.root.state("normal")
+                self.root.geometry("1440x1024")
+                screen_width = self.root.winfo_screenwidth()
+                screen_height = self.root.winfo_screenheight()
+                x = (screen_width // 2) - (1440 // 2)
+                y = (screen_height // 2) - (1024 // 2)
+                self.root.geometry(f"1440x1024+{max(0, x)}+{max(0, y)}")
+                if hasattr(self, "btn_fullscreen"):
+                    self.btn_fullscreen.configure(text="🖥️  Maximize Window")
+                if hasattr(self, "btn_fullscreen_stud"):
+                    self.btn_fullscreen_stud.configure(text="🖥️  Maximize Window")
+            else:
+                self.root.state("zoomed")
+                if hasattr(self, "btn_fullscreen"):
+                    self.btn_fullscreen.configure(text="🖥️  Restore Window")
+                if hasattr(self, "btn_fullscreen_stud"):
+                    self.btn_fullscreen_stud.configure(text="🖥️  Restore Window")
+        except Exception:
+            # Fallback to fullscreen attribute if state('zoomed') is not supported on some platforms
+            is_fullscreen = self.root.attributes("-fullscreen")
+            new_state = not is_fullscreen
+            self.root.attributes("-fullscreen", new_state)
+            btn_txt = "🖥️  Restore Window" if new_state else "🖥️  Maximize Window"
+            if hasattr(self, "btn_fullscreen"):
+                self.btn_fullscreen.configure(text=btn_txt)
+            if hasattr(self, "btn_fullscreen_stud"):
+                self.btn_fullscreen_stud.configure(text=btn_txt)
 
     # ==========================
     # SCREEN 2: STUDENT PROFILE MANAGEMENT
