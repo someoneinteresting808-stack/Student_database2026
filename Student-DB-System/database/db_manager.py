@@ -18,10 +18,10 @@ class DBManager:
             return
         db_config = self.load_config()
         self.config = {
-            "host": host or db_config.get("host", "sql12.freesqldatabase.com"),
-            "user": user or db_config.get("user", "sql12829933"),
-            "password": password if password is not None else db_config.get("password", "k65kYT55Nz"),
-            "database": database or db_config.get("database", "sql12829933"),
+            "host": host or db_config.get("host", "localhost"),
+            "user": user or db_config.get("user", "root"),
+            "password": password if password is not None else db_config.get("password", ""),
+            "database": database or db_config.get("database", "student_db"),
             "port": int(db_config.get("port", 3306))
         }
         self.db_lock = threading.Lock()
@@ -38,10 +38,10 @@ class DBManager:
         import json
         path = cls.get_config_path()
         defaults = {
-            "host": "sql12.freesqldatabase.com",
-            "user": "sql12829933",
-            "password": "k65kYT55Nz",
-            "database": "sql12829933",
+            "host": "localhost",
+            "user": "root",
+            "password": "",
+            "database": "student_db",
             "port": 3306
         }
         if os.path.exists(path):
